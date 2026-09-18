@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+data/*.json
+data/*.csv
+data/*.pkl
+data/*.model
+.streamlit/

@@ -1,0 +1,51 @@
+id,name,lat,lon,pincode,area,voltage_kv,capacity_mva,operator
+WB_SS_01,Khardaha 33/11kV Substation,22.7196,88.3803,700117,Khardaha,33,50,WBSEDCL
+WB_SS_02,Rahara Bazar Substation,22.729,88.385,700118,Rahara,33,40,WBSEDCL
+WB_SS_03,Titagarh Industrial Feeder SS,22.74,88.375,700119,Titagarh,132,100,WBSEDCL
+WB_SS_04,Barrackpore Cantonment 132kV SS,22.7644,88.3776,700120,Barrackpore,132,125,WBSETCL
+WB_SS_05,Sodepur Station Road Substation,22.7012,88.3904,700110,Sodepur,33,45,WBSEDCL
+WB_SS_06,Panihati Municipality Feeder SS,22.6934,88.3755,700114,Panihati,33,35,WBSEDCL
+WB_SS_07,Agarpara BT Road Substation,22.68,88.381,700109,Agarpara,33,40,WBSEDCL
+WB_SS_08,Belgharia Rathtala Substation,22.6635,88.3856,700056,Belgharia,33,60,WBSEDCL
+WB_SS_09,Kamarhati Jute Mill Feeder,22.671,88.372,700058,Kamarhati,33,50,WBSEDCL
+WB_SS_10,Baranagar Grid Substation,22.6433,88.3734,700036,Baranagar,132,100,CESC
+WB_SS_11,Dum Dum Cantonment SS,22.642,88.4312,700028,Dum Dum,33,50,CESC
+WB_SS_12,Netaji Subhash Airport Feeder SS,22.654,88.446,700052,Dum Dum Airport,132,80,CESC
+WB_SS_13,Madhyamgram Choumatha SS,22.701,88.452,700129,Madhyamgram,33,45,WBSEDCL
+WB_SS_14,Barasat Champadali Substation,22.721,88.482,700124,Barasat,132,100,WBSETCL
+WB_SS_15,Naihati Central Substation,22.89,88.42,743165,Naihati,33,50,WBSEDCL
+WB_SS_16,Bhatpara Power Distribution Hub,22.87,88.405,743123,Bhatpara,33,45,WBSEDCL
+WB_SS_17,Kankinara Grid Substation,22.855,88.41,743126,Kankinara,33,40,WBSEDCL
+WB_SS_18,Shyamnagar Feeder SS,22.83,88.39,743127,Shyamnagar,33,35,WBSEDCL
+WB_SS_19,Habra Town Substation,22.84,88.63,743263,Habra,33,40,WBSEDCL
+WB_SS_20,New Town Action Area 1 SS,22.585,88.46,700156,New Town,132,120,WBSEDCL
+WB_SS_21,Salt Lake Sector V Tech Substation,22.58,88.433,700091,Salt Lake Sec V,132,150,WBSEDCL
+WB_SS_22,Salt Lake Karunamoyee SS,22.5867,88.4178,700064,Salt Lake Sec II,33,60,WBSEDCL
+WB_SS_23,Salt Lake BD Block Substation,22.593,88.41,700064,Salt Lake Sec I,33,50,WBSEDCL
+WB_SS_24,Salt Lake Sector III Stadium SS,22.571,88.405,700098,Salt Lake Sec III,33,55,WBSEDCL
+WB_SS_25,Ultadanga Central Receiving Station,22.5975,88.391,700067,Ultadanga,132,125,CESC
+WB_SS_26,Shyambazar Five-Point SS,22.6025,88.3712,700004,Shyambazar,33,60,CESC
+WB_SS_27,Maniktala Circular Road SS,22.585,88.379,700006,Maniktala,33,50,CESC
+WB_SS_28,Sealdah Railway Feeder SS,22.5697,88.3713,700014,Sealdah,132,100,CESC
+WB_SS_29,BBD Bagh Financial District SS,22.5726,88.3439,700001,BBD Bagh,33,75,CESC
+WB_SS_30,Park Street Heritage Substation,22.551,88.352,700016,Park Street,33,65,CESC
+WB_SS_31,Park Circus 7-Point Substation,22.543,88.368,700017,Park Circus,33,55,CESC
+WB_SS_32,Tangra Industrial Leather Feeder,22.552,88.385,700015,Tangra,33,45,CESC
+WB_SS_33,EM Bypass Dhapa Receiving Station,22.548,88.406,700105,Dhapa Bypass,132,150,CESC
+WB_SS_34,Bhawanipore Ashutosh Mukherjee SS,22.528,88.348,700025,Bhawanipore,33,50,CESC
+WB_SS_35,Ballygunge Circular Road SS,22.528,88.365,700019,Ballygunge,33,60,CESC
+WB_SS_36,Gariahat Retail Hub Substation,22.518,88.366,700029,Gariahat,33,70,CESC
+WB_SS_37,Alipore Zoo & Hospital Feeder SS,22.5311,88.3315,700027,Alipore,33,60,CESC
+WB_SS_38,New Alipore Substation,22.505,88.328,700053,New Alipore,33,50,CESC
+WB_SS_39,Behala Chowrasta Substation,22.4988,88.311,700034,Behala,33,55,CESC
+WB_SS_40,Taratala Industrial Grid SS,22.511,88.315,700088,Taratala,132,120,CESC
+WB_SS_41,Jadavpur University Feeder SS,22.498,88.371,700032,Jadavpur,33,65,CESC
+WB_SS_42,Tollygunge Metro Shed Substation,22.498,88.347,700033,Tollygunge,33,50,CESC
+WB_SS_43,Garia Mahamayatala SS,22.464,88.383,700084,Garia,33,45,WBSEDCL
+WB_SS_44,Kasba Industrial Estate SS,22.516,88.388,700042,Kasba,33,55,CESC
+WB_SS_45,Ruby Hospital Junction SS,22.513,88.403,700107,Ruby Anandapur,33,60,CESC
+WB_SS_46,Howrah Station Terminal SS,22.589,88.343,711101,Howrah Station,132,100,CESC
+WB_SS_47,Shibpur Botanical Gardens SS,22.565,88.312,711102,Shibpur,33,45,CESC
+WB_SS_48,Salkia North Howrah Feeder,22.604,88.346,711106,Salkia,33,50,CESC
+WB_SS_49,Bally Vivekananda Bridge SS,22.65,88.342,711201,Bally Howrah,33,40,WBSEDCL
+WB_SS_50,Rishra Industrial Substation,22.71,88.345,712248,Rishra Hooghly,132,90,WBSETCL
