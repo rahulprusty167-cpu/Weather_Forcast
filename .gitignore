@@ -6,3 +6,4 @@ data/*.csv
 data/*.pkl
 data/*.model
 .streamlit/
+node_modules
