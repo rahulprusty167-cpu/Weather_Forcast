@@ -148,6 +148,19 @@ html, body, [class*="css"] {
     border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
+/* Simulation Disclaimer Banner */
+.simulation-banner {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    color: #fde68a;
+    line-height: 1.4;
+    margin-bottom: 14px;
+    font-weight: 500;
+}
+
 /* Streamlit Native Tweaks */
 div[data-testid="stSidebarContent"] {
     background: #090e1d;
@@ -174,6 +187,13 @@ with st.sidebar:
     st.title("⚡ BengalGrid AI")
     st.caption("Predictive Digital Twin • Khardaha & Kolkata")
 
+    st.markdown("""
+        <div class="simulation-banner">
+            ⚠️ <strong>SIMULATION FOR DEMONSTRATION PURPOSES</strong> — NOT AFFILIATED WITH, OR AN OFFICIAL SERVICE OF, WBSEDCL, CESC, OR WBSETCL.<br>
+            All SMS messages, bill credits, and grid telemetry shown are synthetically generated and not real.
+        </div>
+    """, unsafe_allow_html=True)
+
     # View Mode Switcher
     view_mode = st.radio(
         "Select Portal View:",
@@ -195,13 +215,13 @@ with st.sidebar:
         st.metric("Relative Hum.", f"{env_data['relative_humidity_pct']}%")
         st.metric("US AQI (PM2.5)", f"{env_data['aqi_us']}")
 
-    st.caption(f"Status: **{env_data['aqi_category']}** | Live: `{env_data['is_live']}`")
+    st.caption(f"Status: **{env_data['aqi_category']}** | Live Weather API: `{env_data['is_live']}`")
     st.info(f"💡 **AC Stress Factor: {env_data['ac_load_stress_factor']}x**\n(Correlated heat index & closed-window pollution surge)")
 
     st.markdown("---")
     # Simulation speed & live refresh
-    st.caption("Live MQTT Telemetry Streamer: 50 Substations @ 5s payload interval.")
-    if st.button("🔄 Refresh Live Telemetry Now"):
+    st.caption("Simulated Grid Telemetry Streamer (Demo): 50 Substations @ 5s synthetic interval.")
+    if st.button("🔄 Refresh Telemetry & Live Weather"):
         st.rerun()
 
 
@@ -210,6 +230,10 @@ with st.sidebar:
 # ==============================================================================
 if view_mode == "👥 Citizen Outage Readiness":
     st.markdown("""
+        <div class="simulation-banner">
+            ⚠️ <strong>SIMULATION FOR DEMONSTRATION PURPOSES</strong> — NOT AFFILIATED WITH, OR AN OFFICIAL SERVICE OF, WBSEDCL, CESC, OR WBSETCL.
+            All SMS messages, bill credits, and grid telemetry shown are synthetically generated and not real.
+        </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <div>
                 <span class="header-badge">Citizen Transparency Portal</span>
@@ -296,7 +320,7 @@ if view_mode == "👥 Citizen Outage Readiness":
                 <div style="text-align:right; margin-top:10px;">
                     <div style="font-size:0.85rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Calculated Safe Window</div>
                     <div style="font-size:2.2rem; font-weight:900; color:#f8fafc;">~{safe_hours} Hours</div>
-                    <div style="font-size:0.88rem; color:{banner_color}; font-weight:600;">Guaranteed Stable Until: {safe_until}</div>
+                    <div style="font-size:0.88rem; color:{banner_color}; font-weight:600;">Estimated Stable Until: {safe_until} (AI forecast, not a guarantee)</div>
                 </div>
             </div>
         </div>
@@ -317,7 +341,10 @@ if view_mode == "👥 Citizen Outage Readiness":
     with m2:
         st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-label">Transformer Load Ratio</div>
+                <div class="metric-label">
+                    Transformer Load Ratio
+                    <span style="font-size:0.65rem; background:rgba(245,158,11,0.2); color:#fde68a; border:1px solid rgba(245,158,11,0.4); padding:1px 6px; border-radius:4px; margin-left:4px; font-weight:700;">SIMULATED</span>
+                </div>
                 <div class="metric-val">{ss_telemetry['load_percentage']}%</div>
                 <div class="metric-delta {'delta-good' if ss_telemetry['load_percentage'] < 75 else 'delta-warn' if ss_telemetry['load_percentage'] < 85 else 'delta-crit'}">
                     Capacity: {active_ss['capacity_mva']} MVA ({ss_telemetry['active_power_mw']} MW)
@@ -327,7 +354,10 @@ if view_mode == "👥 Citizen Outage Readiness":
     with m3:
         st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-label">Transformer Oil Temp</div>
+                <div class="metric-label">
+                    Transformer Oil Temp
+                    <span style="font-size:0.65rem; background:rgba(245,158,11,0.2); color:#fde68a; border:1px solid rgba(245,158,11,0.4); padding:1px 6px; border-radius:4px; margin-left:4px; font-weight:700;">SIMULATED</span>
+                </div>
                 <div class="metric-val">{ss_telemetry['transformer_oil_temp_c']}°C</div>
                 <div class="metric-delta {'delta-good' if ss_telemetry['transformer_oil_temp_c'] < 75 else 'delta-warn' if ss_telemetry['transformer_oil_temp_c'] < 82 else 'delta-crit'}">
                     Ambient Delta: +{ss_telemetry['temperature_delta_c']}°C
@@ -337,7 +367,10 @@ if view_mode == "👥 Citizen Outage Readiness":
     with m4:
         st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-label">AI Outage Risk (4h)</div>
+                <div class="metric-label">
+                    AI Outage Risk (4h)
+                    <span style="font-size:0.65rem; background:rgba(6,182,212,0.2); color:#a5f3fc; border:1px solid rgba(6,182,212,0.4); padding:1px 6px; border-radius:4px; margin-left:4px; font-weight:700;">AI FORECAST</span>
+                </div>
                 <div class="metric-val">{risk_pct}%</div>
                 <div class="metric-delta {'delta-good' if risk_pct < 45 else 'delta-warn' if risk_pct < 75 else 'delta-crit'}">
                     Status: {status}
@@ -376,9 +409,9 @@ if view_mode == "👥 Citizen Outage Readiness":
 
         st.markdown("""
             <div style="background:rgba(6, 182, 212, 0.08); border:1px solid rgba(6, 182, 212, 0.3); border-radius:12px; padding:16px; margin-bottom:14px;">
-                <h4 style="margin:0 0 6px 0; color:#38bdf8;">WBSEDCL & CESC Pre-Emptive Demand Response</h4>
+                <h4 style="margin:0 0 6px 0; color:#38bdf8;">Simulated Pre-Emptive Demand Response (Demo)</h4>
                 <p style="font-size:0.9rem; color:#cbd5e1; margin:0;">
-                    Instead of forced load shedding, we offer financial incentives to consumers who adjust their AC thermostats or turn off 1 heavy appliance.
+                    Instead of forced load shedding, we demonstrate simulated incentives for consumers who voluntarily adjust their AC thermostats or defer 1 appliance.
                 </p>
             </div>
         """, unsafe_allow_html=True)
@@ -393,7 +426,8 @@ if view_mode == "👥 Citizen Outage Readiness":
             index=1
         )
 
-        user_phone = st.text_input("Enter Mobile Number for SMS Confirmation:", value="+91 98301 44520")
+        user_phone = st.text_input("Enter Mobile Number for SMS Confirmation:", value="", placeholder="+91 98301 44520")
+        st.caption("🔒 By submitting, you agree this is a demo — no real SMS will be sent and your number is not stored.")
 
         if st.button("📲 Opt-In & Receive Automated Discount SMS", type="primary", use_container_width=True):
             kw_saved = 2.0 if "Option B" in opt_in_tier else (1.2 if "Option A" in opt_in_tier else 8.0)
@@ -402,10 +436,10 @@ if view_mode == "👥 Citizen Outage Readiness":
 
             st.markdown(f"""
                 <div class="sms-phone-frame">
-                    <strong>[INCOMING SMS FROM WBSEDCL-GRID]</strong><br>
-                    "Thank you {user_phone}. Your participation in the Khardaha/Kolkata Smart Grid Relief Program is confirmed.
+                    <strong>[DEMO SMS] Grid Relief Program Notification</strong><br>
+                    "Thank you {user_phone or '[Registered User]'}. Your participation in the Khardaha/Kolkata Smart Grid Relief Program is confirmed.
                     Please keep connected load reduced by ~{kw_saved} kW between 18:00 - 20:00.
-                    A micro-discount credit of <strong>₹{rebate:.2f}</strong> has been logged to your consumer account."
+                    A micro-discount credit of <strong>₹{rebate:.2f}</strong> has been logged to your consumer account (simulated, not a real transaction)."
                 </div>
             """, unsafe_allow_html=True)
 
@@ -426,11 +460,15 @@ if view_mode == "👥 Citizen Outage Readiness":
 # ==============================================================================
 else:
     st.markdown("""
+        <div class="simulation-banner">
+            ⚠️ <strong>SIMULATION FOR DEMONSTRATION PURPOSES</strong> — NOT AFFILIATED WITH, OR AN OFFICIAL SERVICE OF, WBSEDCL, CESC, OR WBSETCL.
+            All SMS messages, bill credits, and grid telemetry shown are synthetically generated and not real.
+        </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <div>
                 <span class="header-badge">SCADA Central Load Despatch Console</span>
                 <h1 style="margin:4px 0 0 0; font-size:2.2rem; font-weight:800;">West Bengal Smart Grid Digital Twin</h1>
-                <p style="color:#94a3b8; margin-top:2px;">50 Substations • Live MQTT Feeds • 4-Hour Advance Thermal Warning • Automated Demand Response</p>
+                <p style="color:#94a3b8; margin-top:2px;">50 Substations • Simulated MQTT Feeds • 4-Hour Advance Thermal Warning • Automated Demand Response (Demo)</p>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -705,6 +743,20 @@ else:
         st.caption("Hourly load curves modeled on West Bengal SLDC / ERLDC historical diurnal profiles")
 
         posoco_df = load_posoco_wb_dataset()
+        data_source = getattr(posoco_df, "attrs", {}).get("data_source") or (posoco_df["data_source"].iloc[0] if "data_source" in posoco_df.columns else "synthetic_fallback")
+        if data_source == "live_grid_india_erldc":
+            st.markdown("""
+                <div style="background-color: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); color: #a7f3d0; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; margin-bottom: 12px;">
+                    🟢 <strong>Data Source: Grid-India / ERLDC Live Public Reporting</strong> — Calibrated to real-time recorded peak demand (13,570 MW met) with daily 24h caching.
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+                <div style="background-color: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde68a; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; margin-bottom: 12px;">
+                    ⚠️ <strong>Data Source: Simulated Fallback</strong> — Synthetic diurnal profile calibrated to historical ERLDC patterns (offline or fallback mode).
+                </div>
+            """, unsafe_allow_html=True)
+
         # Display last 72 hours
         sub_posoco = posoco_df.tail(72).copy()
 

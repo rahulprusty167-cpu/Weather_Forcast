@@ -70,6 +70,9 @@ export default function StatusBanner({ prediction, substation, telemetry }) {
               <span className={`text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border ${config.badgeClass}`}>
                 {config.badge}
               </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-amber-500/15 text-amber-900 border border-amber-500/40">
+                {telemetry.telemetry_source || 'Simulated'}
+              </span>
               <span className="text-xs text-slate-500 font-mono">
                 Feeder ID: {substation.id} • {substation.voltage_kv} kV
               </span>
@@ -95,9 +98,10 @@ export default function StatusBanner({ prediction, substation, telemetry }) {
               ~{safeHours}
               <span className="text-xs text-slate-500 font-sans font-normal">Hours</span>
             </div>
-            <div className="text-xs font-medium mt-0.5 flex items-center lg:justify-end gap-1 text-slate-600">
+            <div className="text-xs font-medium mt-0.5 flex items-center lg:justify-end gap-1 text-slate-600 flex-wrap">
               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-              Stable Until: <span className="font-mono font-semibold text-slate-800">{safeUntilStr}</span>
+              Estimated Stable Until: <span className="font-mono font-semibold text-slate-800">{safeUntilStr}</span>
+              <span className="text-[10px] text-slate-500 font-sans">(AI forecast, not a guarantee)</span>
             </div>
           </div>
         </div>

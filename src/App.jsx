@@ -8,7 +8,8 @@ import {
   Sparkles,
   Info,
   Radio,
-  Sliders
+  Sliders,
+  AlertTriangle
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import StatusBanner from './components/StatusBanner';
@@ -17,6 +18,9 @@ import CitizenReadiness from './components/CitizenReadiness';
 import ExplainabilityCard from './components/ExplainabilityCard';
 import DemandResponseWidget from './components/DemandResponseWidget';
 import CitizenTransformer3D from './components/3d/CitizenTransformer3D';
+import Footer from './components/Footer';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsAndConditions from './components/TermsAndConditions';
 
 // Code-split heavy Operator Console to make Citizen View load instantly
 const OperatorConsole = lazy(() => import('./components/OperatorConsole'));
@@ -41,18 +45,56 @@ function OperatorConsoleSkeleton() {
   );
 }
 
-
 import { CURATED_SUBSTATIONS, PINCODE_OPTIONS, DEFAULT_ENV_DATA } from './data/substationsData';
 import { generateSubstationTelemetry, predictRisk } from './services/gridEngine';
 import { fetchLiveEnvironmentalData } from './services/liveWeatherService';
 
 export default function App() {
   const [viewMode, setViewMode] = useState('citizen'); // 'citizen' or 'operator'
+  const [route, setRoute] = useState('dashboard'); // 'dashboard' | 'privacy' | 'terms'
   const [selectedPincode, setSelectedPincode] = useState('700117'); // Default Khardaha
   const [envData, setEnvData] = useState(DEFAULT_ENV_DATA);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
   const [searchFilter, setSearchFilter] = useState('');
+
+  // Handle in-app routing via URL path or hash
+  useEffect(() => {
+    const handleLocation = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      if (path === '/privacy' || hash === '#/privacy' || hash === '#privacy') {
+        setRoute('privacy');
+      } else if (path === '/terms' || hash === '#/terms' || hash === '#terms') {
+        setRoute('terms');
+      } else {
+        setRoute('dashboard');
+      }
+    };
+
+    handleLocation();
+    window.addEventListener('popstate', handleLocation);
+    window.addEventListener('hashchange', handleLocation);
+    return () => {
+      window.removeEventListener('popstate', handleLocation);
+      window.removeEventListener('hashchange', handleLocation);
+    };
+  }, []);
+
+  const navigateTo = (target) => {
+    setRoute(target);
+    if (target === 'dashboard') {
+      window.history.pushState({}, '', '/');
+    } else {
+      window.history.pushState({}, '', `/${target}`);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    setRoute('dashboard');
+  };
 
   // Active Substation corresponding to selected Pincode
   const activeSubstation = useMemo(() => {
@@ -146,7 +188,7 @@ export default function App() {
       {/* Sidebar: Digital Twin Controls & Live Environmental Feeds */}
       <Sidebar 
         viewMode={viewMode}
-        setViewMode={setViewMode}
+        setViewMode={handleViewModeChange}
         envData={envData}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
@@ -154,12 +196,24 @@ export default function App() {
       />
 
       {/* Main Workspace Dashboard Content */}
-      <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
-        {viewMode === 'citizen' ? (
+      <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full flex flex-col justify-between">
+        {route === 'privacy' ? (
+          <PrivacyPolicy onBack={() => navigateTo('dashboard')} />
+        ) : route === 'terms' ? (
+          <TermsAndConditions onBack={() => navigateTo('dashboard')} />
+        ) : viewMode === 'citizen' ? (
           /* ========================================================
              CITIZEN OUTAGE READINESS PORTAL VIEW
              ======================================================== */
           <div className="space-y-6">
+            {/* Simulation Disclaimer Banner */}
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs leading-relaxed flex items-start gap-2.5 font-medium shadow-sm">
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong className="font-bold">⚠️ SIMULATION FOR DEMONSTRATION PURPOSES:</strong> Not affiliated with, or an official service of, WBSEDCL, CESC, or WBSETCL. All SMS messages, bill credits, and grid telemetry shown are synthetically generated and not real.
+              </div>
+            </div>
+
             {/* Hero Section Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
               <div>
@@ -186,8 +240,8 @@ export default function App() {
                 <span className="text-xs font-semibold text-slate-700">
                   {envData.is_live ? `Live Open-Meteo (${envData.latency_ms || 120}ms)` : 'Grid Synced'}
                 </span>
-                <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold border border-emerald-200">
-                  LIVE API
+                <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded font-bold border border-emerald-200">
+                  Live Weather API
                 </span>
               </div>
             </div>
@@ -257,10 +311,10 @@ export default function App() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Real-Time Feeder SCADA Telemetry
+                  Feeder SCADA Telemetry (Simulated Demo)
                 </span>
                 <span className="text-[11px] font-mono font-medium text-blue-600">
-                  MQTT Feed: Active • Latency 24ms
+                  Simulated Grid Stream (Demo) • Synthesized 24ms
                 </span>
               </div>
               <TelemetryCards 
@@ -298,6 +352,9 @@ export default function App() {
             <OperatorConsole envData={envData} />
           </Suspense>
         )}
+
+        {/* Global Application Footer */}
+        <Footer onNavigate={navigateTo} />
       </main>
     </div>
   );

@@ -37,7 +37,10 @@ FEATURE_NAMES = [
 ]
 
 
-def generate_training_data(num_samples: int = 5000) -> pd.DataFrame:
+REAL_DATASET_PATH = os.environ.get("BENGALGRID_REAL_DATASET", "data_for_model/real_transformer_data.csv")
+
+
+def generate_synthetic_training_data(num_samples: int = 5000) -> pd.DataFrame:
     """
     Synthesize high-fidelity physics-guided training data representing West Bengal grid dynamics:
     Simulates thermal time constants of large mineral-oil immersed power transformers (33/11kV and 132/33kV).
@@ -122,15 +125,94 @@ def generate_training_data(num_samples: int = 5000) -> pd.DataFrame:
     return df
 
 
+# Backwards compatibility alias
+generate_training_data = generate_synthetic_training_data
+
+
+def load_real_training_data(csv_path: str = REAL_DATASET_PATH) -> pd.DataFrame:
+    """
+    Load, validate, and clean a real transformer dataset (e.g. from IEEE DataPort, Kaggle, or utility SCADA logs).
+    Expects columns matching or mappable to FEATURE_NAMES, validates distributions,
+    and ensures ground truth target 'overload_in_4h' is present.
+    """
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"Real transformer dataset not found at '{csv_path}'")
+
+    logger.info("Loading real transformer training dataset from: %s", csv_path)
+    raw_df = pd.read_csv(csv_path)
+
+    alias_map = {
+        "load_pct": "load_percentage",
+        "loading": "load_percentage",
+        "active_power": "active_power_mw",
+        "power_mw": "active_power_mw",
+        "reactive_power": "reactive_power_mvar",
+        "power_mvar": "reactive_power_mvar",
+        "pf": "power_factor",
+        "oil_temp": "transformer_oil_temp_c",
+        "top_oil_temp": "transformer_oil_temp_c",
+        "ambient_temp": "ambient_temp_c",
+        "apparent_temp": "apparent_temp_c",
+        "heat_index": "apparent_temp_c",
+        "humidity": "relative_humidity_pct",
+        "aqi": "us_aqi",
+        "capacity": "capacity_mva",
+        "label": "overload_in_4h",
+        "overload": "overload_in_4h",
+        "target": "overload_in_4h"
+    }
+    df = raw_df.rename(columns=alias_map).copy()
+
+    # Backfill derived features if missing
+    if "temp_delta_c" not in df.columns and "transformer_oil_temp_c" in df.columns and "ambient_temp_c" in df.columns:
+        df["temp_delta_c"] = df["transformer_oil_temp_c"] - df["ambient_temp_c"]
+
+    if "hour_of_day" not in df.columns:
+        if "timestamp" in df.columns:
+            df["hour_of_day"] = pd.to_datetime(df["timestamp"]).dt.hour
+        else:
+            df["hour_of_day"] = 18
+
+    if "ac_load_stress_factor" not in df.columns:
+        df["ac_load_stress_factor"] = 1.0 + np.maximum(0.0, (df.get("apparent_temp_c", 32.0) - 28.0) * 0.035)
+
+    if "voltage_drop_pct" not in df.columns:
+        df["voltage_drop_pct"] = (df.get("load_percentage", 65.0) / 100.0 - 0.5) * 5.0
+
+    if "capacity_mva" not in df.columns:
+        df["capacity_mva"] = 50.0
+
+    # Ensure target column exists
+    if "overload_in_4h" not in df.columns:
+        logger.warning("Target column 'overload_in_4h' not found in %s; inferring from IEEE thermal limits.", csv_path)
+        df["overload_in_4h"] = np.where(
+            (df.get("transformer_oil_temp_c", 0) >= 82.0) | (df.get("load_percentage", 0) >= 88.0),
+            1, 0
+        )
+
+    # Check for missing required features
+    missing_feats = [col for col in FEATURE_NAMES if col not in df.columns]
+    if missing_feats:
+        raise ValueError(f"Real dataset at '{csv_path}' is missing required feature columns: {missing_feats}")
+
+    # Remove any NaN/Inf values
+    df_clean = df.dropna(subset=FEATURE_NAMES + ["overload_in_4h"]).copy()
+    logger.info("Successfully validated real dataset: %d valid rows, %d positive overload cases (%.1f%%)",
+                len(df_clean), int(df_clean["overload_in_4h"].sum()),
+                df_clean["overload_in_4h"].mean() * 100)
+    return df_clean
+
+
 class ThermalOverloadPredictor:
     """
     XGBoost 4-Hour Predictive Overload Model with SHAP Plain-Language Attributions.
     """
 
-    def __init__(self):
+    def __init__(self, real_csv_path: str = REAL_DATASET_PATH):
         self.model = None
         self.explainer = None
         self.feature_names = FEATURE_NAMES
+        self.real_csv_path = real_csv_path
         self._load_or_train()
 
     def _load_or_train(self):
@@ -146,12 +228,20 @@ class ThermalOverloadPredictor:
             except Exception as e:
                 logger.warning("Failed to load saved model (%s). Retraining...", e)
 
-        self.train_and_save()
+        self.train_and_save(real_csv_path=self.real_csv_path)
 
-    def train_and_save(self, num_samples: int = 5000):
+    def train_and_save(self, num_samples: int = 5000, real_csv_path: str = REAL_DATASET_PATH):
         """Train XGBoost classifier and build SHAP TreeExplainer."""
-        logger.info("Generating training data and training XGBoost model...")
-        df = generate_training_data(num_samples)
+        if os.path.exists(real_csv_path):
+            try:
+                logger.info("REAL DATASET FOUND at '%s'. Training XGBoost model on REAL transformer data.", real_csv_path)
+                df = load_real_training_data(real_csv_path)
+            except Exception as e:
+                logger.warning("Failed to load real dataset from %s (%s). Falling back to synthetic generator.", real_csv_path, e)
+                df = generate_synthetic_training_data(num_samples)
+        else:
+            logger.info("No real dataset found at '%s'. Using synthetic physics-guided training data generator.", real_csv_path)
+            df = generate_synthetic_training_data(num_samples)
 
         X = df[self.feature_names]
         y = df["overload_in_4h"]

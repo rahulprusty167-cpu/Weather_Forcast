@@ -72,6 +72,7 @@ export default function SubstationPopupModal({
         {/* Close Button */}
         <button
           onClick={onClose}
+          aria-label="Close Substation Details Modal"
           className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors focus:outline-none"
           title="Close Pop-up"
         >

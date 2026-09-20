@@ -3,7 +3,7 @@ import { IndianRupee, MessageSquare, Send, CheckCircle2 } from 'lucide-react';
 
 export default function DemandResponseWidget({ pincode, areaName }) {
   const [selectedTier, setSelectedTier] = useState('B');
-  const [phone, setPhone] = useState('+91 98301 44520');
+  const [phone, setPhone] = useState('');
   const [enrolled, setEnrolled] = useState(false);
   const [smsData, setSmsData] = useState(null);
 
@@ -63,7 +63,7 @@ export default function DemandResponseWidget({ pincode, areaName }) {
         </div>
 
         <p className="text-xs text-slate-500 mb-3">
-          WBSEDCL & CESC Peak Management: Voluntarily defer high-draw cooling between 18:00–20:00 to earn bill credits.
+          Simulated Peak Demand Management (Demo): Voluntarily defer high-draw cooling between 18:00–20:00 to earn simulated bill credits.
         </p>
 
         {/* Tier selection */}
@@ -115,6 +115,9 @@ export default function DemandResponseWidget({ pincode, areaName }) {
               placeholder="+91 98301 44520"
               className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
             />
+            <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+              By submitting, you agree this is a demo — no real SMS will be sent and your number is not stored.
+            </p>
           </div>
 
           <button
@@ -133,12 +136,12 @@ export default function DemandResponseWidget({ pincode, areaName }) {
           <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2 pb-1.5 border-b border-slate-200 font-sans">
             <span className="flex items-center gap-1 font-bold text-slate-800">
               <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-              WBSEDCL-GRID Notification
+              [DEMO] Grid Relief Program Notification
             </span>
             <span>{smsData.time}</span>
           </div>
           <p className="text-xs text-slate-700 leading-relaxed font-sans">
-            Thank you. Your voluntary participation for Pincode {pincode} ({areaName}) is confirmed. Please maintain ~{smsData.kwSaved} kW curtailment between 18:00–20:00. A bill rebate credit of <strong className="text-emerald-700 font-semibold">₹{smsData.rebate}</strong> has been logged to your consumer ID.
+            Thank you. Your voluntary participation for Pincode {pincode} ({areaName}) is confirmed. Please maintain ~{smsData.kwSaved} kW curtailment between 18:00–20:00. A bill rebate credit of <strong className="text-emerald-700 font-semibold">₹{smsData.rebate}</strong> has been logged to your consumer ID (simulated, not a real transaction).
           </p>
         </div>
       )}

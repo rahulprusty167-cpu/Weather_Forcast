@@ -21,6 +21,8 @@ except ImportError:
 
 from src.geo_substations import CURATED_SUBSTATIONS
 
+from abc import ABC, abstractmethod
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -29,15 +31,135 @@ DEFAULT_PORT = 1883
 BASE_TOPIC = "wbsedcl/smartgrid/telemetry"
 
 
+class TelemetryProvider(ABC):
+    """
+    Abstract Base Class for Substation Telemetry Providers.
+    Allows seamlessly swapping between simulated smart meter physics engines
+    and live utility SCADA (MQTT/IEC 60870-5-104) streams.
+    """
+    def __init__(self, source_name: str = "Unknown"):
+        self.source_name = source_name
+        self.source_tag = "Unknown"
+
+    @abstractmethod
+    def generate_substation_payload(self, ss: Dict[str, Any], dt: datetime.datetime, ambient_temp: float = 34.5) -> Dict[str, Any]:
+        """Generate or retrieve a telemetry payload for a single substation."""
+        pass
+
+
+class SimulatedTelemetryProvider(TelemetryProvider):
+    """
+    Simulated Telemetry Provider: Emulates physics-based IEEE Std C57.91 thermal dynamics
+    and diurnal feeder loading calibrated to West Bengal distribution conditions.
+    """
+    def __init__(self):
+        super().__init__("Simulated (Smart Meter Emulator)")
+        self.source_tag = "Simulated"
+
+    def generate_substation_payload(self, ss: Dict[str, Any], dt: datetime.datetime, ambient_temp: float = 34.5) -> Dict[str, Any]:
+        """Generate statistically realistic electrical & thermal SCADA telemetry."""
+        hour = dt.hour
+
+        # Diurnal base load factor (evening spike from 18 to 22)
+        if 18 <= hour <= 22:
+            time_factor = 0.82 + 0.12 * math.sin((hour - 18) * math.pi / 4)
+        elif 12 <= hour <= 16:
+            time_factor = 0.74 + 0.08 * math.sin((hour - 12) * math.pi / 4)
+        elif 0 <= hour <= 5:
+            time_factor = 0.48 + 0.05 * math.sin(hour)
+        else:
+            time_factor = 0.65
+
+        # Khardaha / Rahara / Titagarh area (dense residential & MSME) experiences heightened evening load
+        is_khardaha_belt = ss["pincode"] in ["700117", "700118", "700119", "700110"]
+        if is_khardaha_belt:
+            time_factor += 0.08
+
+        # Random micro-fluctuations (substation tap changers, AC cycling)
+        micro_jitter = random.uniform(-0.04, 0.05)
+        load_pct = min(0.98, max(0.35, time_factor + micro_jitter))
+
+        capacity_mva = float(ss.get("capacity_mva", 50))
+        apparent_mva = round(capacity_mva * load_pct, 2)
+        power_factor = round(random.uniform(0.89, 0.96), 3)
+        active_mw = round(apparent_mva * power_factor, 2)
+        reactive_mvar = round(math.sqrt(max(0, apparent_mva**2 - active_mw**2)), 2)
+
+        nominal_kv = float(ss.get("voltage_kv", 33))
+        voltage_kv = round(nominal_kv * (1.0 - (load_pct - 0.5) * 0.05 + random.uniform(-0.01, 0.01)), 2)
+        current_a = round((apparent_mva * 1000) / (math.sqrt(3) * nominal_kv), 1)
+
+        # Transformer Oil Temperature dynamics:
+        # Standard dissipation: Oil Temp = Ambient + k * (Load_Pct ^ 1.6)
+        delta_t = 42.0 * (load_pct ** 1.6) + random.uniform(-1.5, 2.0)
+        oil_temp_c = round(ambient_temp + delta_t, 1)
+
+        # Thermal overload risk criterion:
+        is_thermal_alert = bool(oil_temp_c >= 82.0 or load_pct >= 0.87)
+
+        return {
+            "substation_id": ss["id"],
+            "substation_name": ss["name"],
+            "pincode": ss["pincode"],
+            "area": ss["area"],
+            "operator": ss["operator"],
+            "lat": ss["lat"],
+            "lon": ss["lon"],
+            "timestamp": dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "capacity_mva": capacity_mva,
+            "apparent_power_mva": apparent_mva,
+            "active_power_mw": active_mw,
+            "reactive_power_mvar": reactive_mvar,
+            "voltage_kv": voltage_kv,
+            "current_a": current_a,
+            "power_factor": power_factor,
+            "load_percentage": round(load_pct * 100, 1),
+            "ambient_temp_c": ambient_temp,
+            "transformer_oil_temp_c": oil_temp_c,
+            "temperature_delta_c": round(oil_temp_c - ambient_temp, 1),
+            "frequency_hz": round(random.uniform(49.92, 50.08), 2),
+            "thermal_overload_alert": is_thermal_alert,
+            "telemetry_source": "Simulated",
+            "provider": self.source_name
+        }
+
+
+class LiveSCADATelemetryProvider(TelemetryProvider):
+    """
+    Live SCADA Telemetry Provider (Stub / Integration Point)
+
+    TODO: Hook into real utility SCADA MQTT / IEC 60870-5-104 broker when access is granted by WBSEDCL / CESC:
+    1. Broker Connection:
+       - URI: ssl://scada-gateway.wbsedcl.in:8883 (or cesc-scada.cesc.co.in)
+       - Authentication: Mutual TLS (mTLS) with utility-issued client certificate (.crt) & private key (.key).
+    2. Topic Hierarchy:
+       - wbsedcl/substation/{substation_id}/telemetry
+    3. Payload Parser:
+       - Maps real utility Modbus/DNP3/JSON registers (Active Power, Top Oil Temp, kV) to BengalGrid schema.
+    """
+    def __init__(self, broker_uri: str = None, cert_path: str = None):
+        super().__init__("Live SCADA (WBSEDCL / CESC)")
+        self.broker_uri = broker_uri
+        self.cert_path = cert_path
+        self.source_tag = "Live SCADA"
+
+    def generate_substation_payload(self, ss: Dict[str, Any], dt: datetime.datetime, ambient_temp: float = 34.5) -> Dict[str, Any]:
+        raise NotImplementedError(
+            f"LiveSCADATelemetryProvider: Live utility credentials and mTLS certificates for "
+            f"{ss.get('name')} ({ss.get('operator')}) are not configured."
+        )
+
+
 class SmartGridTelemetryStreamer:
     """
     Manages live MQTT publication and subscription for 50 substations.
     Maintains a thread-safe cache of latest readings for the Streamlit Digital Twin.
     """
 
-    def __init__(self, broker: str = DEFAULT_BROKER, port: int = DEFAULT_PORT):
+    def __init__(self, broker: str = DEFAULT_BROKER, port: int = DEFAULT_PORT, provider: TelemetryProvider = None):
         self.broker = broker
         self.port = port
+        self.provider = provider or SimulatedTelemetryProvider()
         self.substations = CURATED_SUBSTATIONS
         self.latest_telemetry: Dict[str, Dict[str, Any]] = {}
         self.history: Dict[str, List[Dict[str, Any]]] = {}
@@ -48,6 +170,14 @@ class SmartGridTelemetryStreamer:
         self.client = None
 
         self._init_fallback_cache()
+
+    def set_provider(self, provider: TelemetryProvider):
+        """Swap the telemetry provider dynamically."""
+        self.provider = provider
+
+    def generate_substation_payload(self, ss: Dict[str, Any], dt: datetime.datetime, ambient_temp: float = 34.5) -> Dict[str, Any]:
+        """Delegate payload generation to the active TelemetryProvider."""
+        return self.provider.generate_substation_payload(ss, dt, ambient_temp)
 
     def _init_fallback_cache(self):
         """Pre-populate initial realistic readings for all 50 substations."""
@@ -104,73 +234,6 @@ class SmartGridTelemetryStreamer:
         client.on_message = on_message
         return client
 
-    def generate_substation_payload(self, ss: Dict[str, Any], dt: datetime.datetime, ambient_temp: float = 34.5) -> Dict[str, Any]:
-        """Generate statistically realistic electrical & thermal SCADA telemetry."""
-        hour = dt.hour
-        minute = dt.minute
-
-        # Diurnal base load factor (evening spike from 18 to 22)
-        if 18 <= hour <= 22:
-            time_factor = 0.82 + 0.12 * math.sin((hour - 18) * math.pi / 4)
-        elif 12 <= hour <= 16:
-            time_factor = 0.74 + 0.08 * math.sin((hour - 12) * math.pi / 4)
-        elif 0 <= hour <= 5:
-            time_factor = 0.48 + 0.05 * math.sin(hour)
-        else:
-            time_factor = 0.65
-
-        # Khardaha / Rahara / Titagarh area (dense residential & MSME) experiences heightened evening load
-        is_khardaha_belt = ss["pincode"] in ["700117", "700118", "700119", "700110"]
-        if is_khardaha_belt:
-            time_factor += 0.08
-
-        # Random micro-fluctuations (substation tap changers, AC cycling)
-        micro_jitter = random.uniform(-0.04, 0.05)
-        load_pct = min(0.98, max(0.35, time_factor + micro_jitter))
-
-        capacity_mva = float(ss.get("capacity_mva", 50))
-        apparent_mva = round(capacity_mva * load_pct, 2)
-        power_factor = round(random.uniform(0.89, 0.96), 3)
-        active_mw = round(apparent_mva * power_factor, 2)
-        reactive_mvar = round(math.sqrt(max(0, apparent_mva**2 - active_mw**2)), 2)
-
-        nominal_kv = float(ss.get("voltage_kv", 33))
-        # Voltage drops slightly under heavy loading
-        voltage_kv = round(nominal_kv * (1.0 - (load_pct - 0.5) * 0.05 + random.uniform(-0.01, 0.01)), 2)
-        current_a = round((apparent_mva * 1000) / (math.sqrt(3) * nominal_kv), 1)
-
-        # Transformer Oil Temperature dynamics:
-        # Standard dissipation: Oil Temp = Ambient + k * (Load_Pct ^ 1.6)
-        delta_t = 42.0 * (load_pct ** 1.6) + random.uniform(-1.5, 2.0)
-        oil_temp_c = round(ambient_temp + delta_t, 1)
-
-        # Thermal overload risk criterion:
-        # IEEE std: Continuous operation above 85°C oil temp or >88% capacity accelerates insulation degradation
-        is_thermal_alert = bool(oil_temp_c >= 82.0 or load_pct >= 0.87)
-
-        return {
-            "substation_id": ss["id"],
-            "substation_name": ss["name"],
-            "pincode": ss["pincode"],
-            "area": ss["area"],
-            "operator": ss["operator"],
-            "lat": ss["lat"],
-            "lon": ss["lon"],
-            "timestamp": dt.strftime("%Y-%m-%d %H:%M:%S"),
-            "capacity_mva": capacity_mva,
-            "apparent_power_mva": apparent_mva,
-            "active_power_mw": active_mw,
-            "reactive_power_mvar": reactive_mvar,
-            "voltage_kv": voltage_kv,
-            "current_a": current_a,
-            "power_factor": power_factor,
-            "load_percentage": round(load_pct * 100, 1),
-            "ambient_temp_c": ambient_temp,
-            "transformer_oil_temp_c": oil_temp_c,
-            "temperature_delta_c": round(oil_temp_c - ambient_temp, 1),
-            "frequency_hz": round(random.uniform(49.92, 50.08), 2),
-            "thermal_overload_alert": is_thermal_alert
-        }
 
     def _stream_loop(self):
         """Background streaming worker sending payloads every 5 seconds."""

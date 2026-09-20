@@ -240,8 +240,8 @@ export default function TopographicalGridMap({
               onClick={() => setFilterStatus('NORMAL')}
               className={`px-2.5 py-1 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
                 filterStatus === 'NORMAL'
-                  ? 'bg-emerald-700 text-white'
-                  : 'text-emerald-700 hover:bg-emerald-50'
+                  ? 'bg-emerald-800 text-white'
+                  : 'text-emerald-800 hover:bg-emerald-50'
               }`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -251,8 +251,8 @@ export default function TopographicalGridMap({
               onClick={() => setFilterStatus('ELEVATED')}
               className={`px-2.5 py-1 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
                 filterStatus === 'ELEVATED'
-                  ? 'bg-amber-700 text-white'
-                  : 'text-amber-700 hover:bg-amber-50'
+                  ? 'bg-amber-800 text-white'
+                  : 'text-amber-800 hover:bg-amber-50'
               }`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -273,6 +273,7 @@ export default function TopographicalGridMap({
 
           <button
             onClick={handleResetView}
+            aria-label="Reset map bounds to default Kolkata view"
             className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 shadow-sm transition-colors"
             title="Reset Map Bounds"
           >
@@ -323,8 +324,8 @@ export default function TopographicalGridMap({
                 <span className="text-[10px] text-slate-500 block">Load Ratio</span>
                 <span className={`font-bold ${
                   selectedNode.status === 'CRITICAL' ? 'text-rose-600' :
-                  selectedNode.status === 'ELEVATED' ? 'text-amber-600' :
-                  'text-emerald-600'
+                  selectedNode.status === 'ELEVATED' ? 'text-amber-800' :
+                  'text-emerald-800'
                 }`}>
                   {selectedNode.load_pct || (selectedNode.telemetry && selectedNode.telemetry.load_percentage)}%
                 </span>

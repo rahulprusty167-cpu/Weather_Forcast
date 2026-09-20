@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 # Bounding box for Kolkata Metropolitan Area and North 24 Parganas (including Khardaha)
 # MinLat, MinLon, MaxLat, MaxLon: 22.40, 88.25 to 22.90, 88.55
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+OVERPASS_MIRRORS = [
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter"
+]
 
 # 50 Curated Real-World Substations covering Khardaha, Kolkata, Barrackpore, Salt Lake & Howrah
 CURATED_SUBSTATIONS = [
@@ -82,44 +86,125 @@ CURATED_SUBSTATIONS = [
 ]
 
 
-def query_overpass_substations(timeout_sec: int = 6):
+def _find_nearest_pincode_and_area(lat: float, lon: float):
+    """Find the geographically nearest curated substation to infer Pincode and Area for raw OSM nodes."""
+    best_dist = float("inf")
+    best_match = CURATED_SUBSTATIONS[0]
+    for cs in CURATED_SUBSTATIONS:
+        dist = (lat - cs["lat"]) ** 2 + (lon - cs["lon"]) ** 2
+        if dist < best_dist:
+            best_dist = dist
+            best_match = cs
+    return best_match["pincode"], best_match["area"]
+
+
+def _parse_voltage_kv(tags: dict) -> int:
+    """Parse voltage tag from OSM (e.g., '33000', '132 kV', '33;11') into integer kV."""
+    v_str = str(tags.get("voltage", tags.get("rating", "33"))).strip().lower()
+    for token in v_str.replace(";", " ").replace(",", " ").replace("kv", "").split():
+        try:
+            val = float(token)
+            if val > 1000:
+                return int(round(val / 1000))
+            elif val > 0:
+                return int(round(val))
+        except ValueError:
+            continue
+    return 33
+
+
+def query_overpass_substations(timeout_sec: int = 8, return_source: bool = False):
     """
-    Attempt to query live OpenStreetMap Overpass Turbo API for real West Bengal substations.
-    Falls back reliably to curated 50 high-precision stations if network or timeout occurs.
+    Query OpenStreetMap Overpass API for real West Bengal power substations.
+    Parses real geographic coordinates and names, mapping them into the standard substation schema.
+    If the live query succeeds and returns >= 5 nodes, returns the real OSM substations.
+    Falls back to the 50 curated stations if network, rate-limiting, or timeout occurs.
     """
     query = """
-    [out:json][timeout:5];
+    [out:json][timeout:6];
     (
       node["power"="substation"](22.40,88.25,22.90,88.55);
       way["power"="substation"](22.40,88.25,22.90,88.55);
     );
     out center 40;
     """
-    try:
-        logger.info("Querying Overpass Turbo API for West Bengal power substations...")
-        response = requests.post(OVERPASS_URL, data={"data": query}, timeout=timeout_sec)
-        if response.status_code == 200:
-            data = response.json()
-            elements = data.get("elements", [])
-            logger.info("Retrieved %d raw substation nodes from Overpass API", len(elements))
-            if len(elements) >= 10:
-                return CURATED_SUBSTATIONS
-        else:
-            logger.warning("Overpass API returned status %d. Using curated catalog.", response.status_code)
-    except Exception as exc:
-        logger.warning("Overpass API query failed or timed out (%s). Using curated catalog.", exc)
+    headers = {"User-Agent": "BengalGridAI/1.0 (substation-research-digital-twin)"}
 
+    for mirror_url in OVERPASS_MIRRORS:
+        try:
+            logger.info("Querying Overpass mirror (%s) for West Bengal substations...", mirror_url)
+            response = requests.post(mirror_url, data={"data": query}, headers=headers, timeout=timeout_sec)
+            if response.status_code == 200:
+                data = response.json()
+                elements = data.get("elements", [])
+                logger.info("Retrieved %d raw substation nodes from Overpass API (%s)", len(elements), mirror_url)
+
+                if len(elements) >= 5:
+                    mapped_substations = []
+                    for idx, elem in enumerate(elements[:50]):
+                        tags = elem.get("tags", {})
+                        elem_type = elem.get("type", "node")
+                        
+                        # Extract coordinates
+                        if elem_type == "node":
+                            lat = float(elem.get("lat", 0))
+                            lon = float(elem.get("lon", 0))
+                        else:
+                            center = elem.get("center", {})
+                            lat = float(center.get("lat", 0))
+                            lon = float(center.get("lon", 0))
+
+                        if not lat or not lon:
+                            continue
+
+                        pincode, inferred_area = _find_nearest_pincode_and_area(lat, lon)
+                        raw_name = tags.get("name") or tags.get("operator") or f"Substation {elem.get('id')}"
+                        voltage_kv = _parse_voltage_kv(tags)
+                        capacity_mva = 100 if voltage_kv >= 132 else (60 if voltage_kv >= 66 else 45)
+
+                        # Operator inference (CESC operates Kolkata municipal grid; WBSEDCL operates districts)
+                        operator = tags.get("operator")
+                        if not operator:
+                            operator = "CESC" if (lat < 22.62 and 88.30 <= lon <= 88.42) else "WBSEDCL"
+
+                        mapped_substations.append({
+                            "id": f"OSM_{elem.get('id')}",
+                            "name": raw_name,
+                            "lat": round(lat, 5),
+                            "lon": round(lon, 5),
+                            "pincode": pincode,
+                            "area": inferred_area,
+                            "voltage_kv": voltage_kv,
+                            "capacity_mva": capacity_mva,
+                            "operator": operator,
+                            "data_source": "osm_overpass_live"
+                        })
+
+                    if len(mapped_substations) >= 5:
+                        logger.info("Successfully mapped and returning %d real OpenStreetMap substations [Source: osm_overpass_live]",
+                                    len(mapped_substations))
+                        return (mapped_substations, "osm_overpass_live") if return_source else mapped_substations
+            else:
+                logger.warning("Overpass mirror %s returned status %d.", mirror_url, response.status_code)
+        except Exception as exc:
+            logger.warning("Overpass query to %s failed (%s). Trying next mirror...", mirror_url, exc)
+
+    logger.info("All Overpass queries failed or returned insufficient nodes. Using curated catalog fallback.")
+    fallback_catalog = [dict(s, data_source="curated_catalog_fallback") for s in CURATED_SUBSTATIONS]
+    return (fallback_catalog, "curated_catalog_fallback") if return_source else fallback_catalog
+
+
+def get_all_substations(prefer_live: bool = False):
+    """Return substations list. If prefer_live is True, attempts to query live Overpass first."""
+    if prefer_live:
+        return query_overpass_substations()
     return CURATED_SUBSTATIONS
 
 
-def get_all_substations():
-    """Return the list of 50 substations with coordinates and Pincodes."""
-    return CURATED_SUBSTATIONS
-
-
-def get_substations_df():
-    """Return a pandas DataFrame of the 50 substations."""
-    df = pd.DataFrame(CURATED_SUBSTATIONS)
+def get_substations_df(prefer_live: bool = False):
+    """Return a pandas DataFrame of substations."""
+    stations = get_all_substations(prefer_live=prefer_live)
+    df = pd.DataFrame(stations)
     return df
 
 
@@ -149,4 +234,6 @@ def save_registry_files(base_dir: str = "."):
 
 
 if __name__ == "__main__":
-    save_registry_files()
+    stations, src = query_overpass_substations(return_source=True)
+    print(f"Loaded {len(stations)} substations via {src}")
+    print("Sample substation:", stations[0])

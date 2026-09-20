@@ -793,6 +793,7 @@ export default function Substation3DScene({
       <div className="absolute top-16 right-3 z-20 flex flex-col gap-1.5 pointer-events-auto">
         <button
           onClick={() => setAutoRotate(!autoRotate)}
+          aria-label={autoRotate ? 'Pause 3D Auto-Rotation' : 'Resume 3D Auto-Rotation'}
           className={`p-2 rounded-xl backdrop-blur-md border text-xs font-medium transition-all ${
             autoRotate 
               ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm' 
@@ -805,6 +806,7 @@ export default function Substation3DScene({
 
         <button
           onClick={handleResetCamera}
+          aria-label="Reset 3D Perspective Camera View"
           className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-900 backdrop-blur-md border border-slate-800 text-slate-400 hover:text-white transition-all shadow-sm"
           title="Reset 3D Perspective"
         >
@@ -847,6 +849,7 @@ export default function Substation3DScene({
               </div>
               <button
                 onClick={() => setSelectedHotspot(null)}
+                aria-label="Close Component Telemetry HUD"
                 className="text-slate-400 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800"
               >
                 ✕

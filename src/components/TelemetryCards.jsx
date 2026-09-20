@@ -41,12 +41,17 @@ export default function TelemetryCards({ substation, telemetry, prediction }) {
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-card hover:border-slate-300 transition-colors flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Feeder Load Ratio
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Feeder Load Ratio
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-amber-500/15 text-amber-900 border border-amber-500/40">
+                {telemetry.telemetry_source || 'Simulated'}
+              </span>
+            </div>
             <div className={`p-1.5 rounded-lg border ${
-              loadPct < 75 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-              loadPct < 85 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+              loadPct < 75 ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
+              loadPct < 85 ? 'bg-amber-50 text-amber-800 border-amber-100' :
               'bg-rose-50 text-rose-600 border-rose-100'
             }`}>
               <Gauge className="w-4 h-4" />
@@ -59,8 +64,8 @@ export default function TelemetryCards({ substation, telemetry, prediction }) {
             </span>
             <span className="text-sm font-semibold text-slate-500">%</span>
             <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded ${
-              loadPct < 75 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-              loadPct < 85 ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+              loadPct < 75 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+              loadPct < 85 ? 'bg-amber-50 text-amber-800 border border-amber-200' :
               'bg-rose-50 text-rose-700 border border-rose-200'
             }`}>
               {loadPct < 75 ? 'Optimal' : loadPct < 85 ? 'Elevated' : 'Overload'}
@@ -90,9 +95,14 @@ export default function TelemetryCards({ substation, telemetry, prediction }) {
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-card hover:border-slate-300 transition-colors flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Transformer Oil Temp
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Transformer Oil Temp
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-amber-500/15 text-amber-900 border border-amber-500/40">
+                {telemetry.telemetry_source || 'Simulated'}
+              </span>
+            </div>
             <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
               <Thermometer className="w-4 h-4" />
             </div>
@@ -131,12 +141,17 @@ export default function TelemetryCards({ substation, telemetry, prediction }) {
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-card hover:border-slate-300 transition-colors flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Outage Risk (4h Lookahead)
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Outage Risk (4h Lookahead)
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-blue-50 text-blue-800 border border-blue-200">
+                AI Forecast
+              </span>
+            </div>
             <div className={`p-1.5 rounded-lg border ${
-              isSafe ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-              riskPct < 75 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+              isSafe ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
+              riskPct < 75 ? 'bg-amber-50 text-amber-800 border-amber-100' :
               'bg-rose-50 text-rose-600 border-rose-100'
             }`}>
               <ShieldAlert className="w-4 h-4" />
@@ -145,14 +160,14 @@ export default function TelemetryCards({ substation, telemetry, prediction }) {
 
           <div className="flex items-baseline gap-1.5 mb-2">
             <span className={`text-3xl font-bold font-mono tracking-tight ${
-              isSafe ? 'text-emerald-700' : riskPct < 75 ? 'text-amber-700' : 'text-rose-700'
+              isSafe ? 'text-emerald-800' : riskPct < 75 ? 'text-amber-800' : 'text-rose-700'
             }`}>
               {riskPct}%
             </span>
             <span className="text-xs font-medium text-slate-500">Probability</span>
             <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded uppercase ${
-              isSafe ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-              riskPct < 75 ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+              isSafe ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+              riskPct < 75 ? 'bg-amber-50 text-amber-800 border border-amber-200' :
               'bg-rose-50 text-rose-700 border border-rose-200'
             }`}>
               {prediction.status}

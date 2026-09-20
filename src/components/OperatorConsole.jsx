@@ -125,11 +125,19 @@ export default function OperatorConsole({ envData }) {
 
   return (
     <div className="space-y-6">
+      {/* Simulation Disclaimer Banner */}
+      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs leading-relaxed flex items-start gap-2.5 font-medium shadow-sm">
+        <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <strong className="font-bold">⚠️ SIMULATION FOR DEMONSTRATION PURPOSES:</strong> Not affiliated with, or an official service of, WBSEDCL, CESC, or WBSETCL. All SMS messages, bill credits, and grid telemetry shown are synthetically generated and not real.
+        </div>
+      </div>
+
       {/* SCADA Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+            <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               SCADA Central Load Despatch Console
             </span>
@@ -138,7 +146,7 @@ export default function OperatorConsole({ envData }) {
             West Bengal Smart Grid Digital Twin
           </h2>
           <p className="text-xs md:text-sm text-slate-500">
-            50 Monitored Substations • Khardaha, Barrackpore, Kolkata & Howrah • 4-Hour Advance Thermal Warning
+            50 Monitored Substations • Khardaha, Barrackpore, Kolkata & Howrah • 4-Hour Advance Thermal Warning (Simulated Telemetry)
           </p>
         </div>
       </div>
@@ -147,9 +155,14 @@ export default function OperatorConsole({ envData }) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {/* KPI 1: Monitored Load */}
         <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-card">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            Total Monitored Load
-          </span>
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Total Monitored Load
+            </span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-500/15 text-amber-900 border border-amber-500/30">
+              Simulated
+            </span>
+          </div>
           <div className="text-2xl font-extrabold font-mono text-blue-600">
             {totalMonitoredMw} <span className="text-xs font-sans font-medium text-slate-400">MW</span>
           </div>
@@ -173,13 +186,13 @@ export default function OperatorConsole({ envData }) {
 
         {/* KPI 3: Elevated Stress */}
         <div className="p-4 rounded-xl bg-white border border-amber-200 shadow-card">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 block mb-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block mb-1">
             Elevated Stress Nodes
           </span>
-          <div className="text-2xl font-extrabold font-mono text-amber-600">
+          <div className="text-2xl font-extrabold font-mono text-amber-800">
             {elevatedCount} <span className="text-xs font-sans font-medium text-slate-400">Nodes</span>
           </div>
-          <span className="text-[11px] text-amber-700 font-medium mt-1 block">
+          <span className="text-[11px] text-amber-800 font-medium mt-1 block">
             70–85% Continuous Load
           </span>
         </div>
@@ -189,10 +202,10 @@ export default function OperatorConsole({ envData }) {
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
             Grid Frequency
           </span>
-          <div className="text-2xl font-extrabold font-mono text-emerald-600">
+          <div className="text-2xl font-extrabold font-mono text-emerald-800">
             49.98 <span className="text-xs font-sans font-medium text-slate-400">Hz</span>
           </div>
-          <span className="text-[11px] text-emerald-700 font-medium mt-1 block">
+          <span className="text-[11px] text-emerald-800 font-medium mt-1 block">
             ERLDC Synchronized
           </span>
         </div>
@@ -200,14 +213,14 @@ export default function OperatorConsole({ envData }) {
         {/* KPI 5: MQTT Status */}
         <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-card col-span-2 md:col-span-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            MQTT Broker Status
+            Telemetry Provider
           </span>
-          <div className="text-xl font-extrabold font-mono text-emerald-600 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            ONLINE
+          <div className="text-base font-extrabold font-mono text-amber-800 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            SIMULATED SCADA
           </div>
           <span className="text-[11px] text-slate-500 font-medium mt-1 block">
-            50 pkts / 5 sec
+            50 pkts / 5s synthetic
           </span>
         </div>
       </div>
@@ -252,7 +265,7 @@ export default function OperatorConsole({ envData }) {
             }`}
           >
             <Layers className="w-4 h-4" />
-            Live SCADA Telemetry Stream (50 SS)
+            Simulated SCADA Telemetry Stream (50 SS Demo)
           </button>
 
           <button
@@ -387,7 +400,7 @@ export default function OperatorConsole({ envData }) {
                   className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.99]"
                 >
                   <Send className="w-4 h-4" />
-                  Trigger Pre-Emptive Automated SMS Dispatch
+                  Trigger Pre-Emptive Simulated SMS Dispatch (Demo)
                 </button>
               </div>
             </div>
@@ -399,10 +412,10 @@ export default function OperatorConsole({ envData }) {
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <span className="text-xs font-bold text-emerald-900">
-                      Live Dispatch Audit Log: <span className="font-mono text-emerald-700">{lastDispatch.id}</span>
+                      Simulated Dispatch Audit Log (Demo): <span className="font-mono text-emerald-800">{lastDispatch.id}</span>
                     </span>
                   </div>
-                  <span className="text-xs font-mono text-emerald-700">{lastDispatch.timestamp}</span>
+                  <span className="text-xs font-mono text-emerald-800">{lastDispatch.timestamp}</span>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -477,8 +490,12 @@ export default function OperatorConsole({ envData }) {
                     <th className="p-3 font-bold">Voltage</th>
                     <th className="p-3 font-bold">Capacity</th>
                     <th className="p-3 font-bold">Active MW</th>
-                    <th className="p-3 font-bold">Load %</th>
-                    <th className="p-3 font-bold">Oil Temp</th>
+                    <th className="p-3 font-bold">
+                      Load % <span className="text-[9px] text-amber-800 font-sans font-semibold">(Simulated)</span>
+                    </th>
+                    <th className="p-3 font-bold">
+                      Oil Temp <span className="text-[9px] text-amber-800 font-sans font-semibold">(Simulated)</span>
+                    </th>
                     <th className="p-3 font-bold">AI 4h Risk</th>
                     <th className="p-3 font-bold">Status</th>
                     <th className="p-3 font-bold text-right">3D Twin</th>
@@ -527,6 +544,7 @@ export default function OperatorConsole({ envData }) {
                             setSelectedSubstationId(node.id);
                             setActiveTab('3d-twin');
                           }}
+                          aria-label={`Inspect ${node.name} in 3D Substation Twin`}
                           className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-sans font-bold text-[10px] inline-flex items-center gap-1 border border-blue-200 transition-all shadow-sm group"
                           title="Inspect in 3D Substation Twin"
                         >
@@ -545,13 +563,19 @@ export default function OperatorConsole({ envData }) {
         {/* TAB 3: POSOCO LOAD CURVE CALIBRATION */}
         {activeTab === 'posoco' && (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900 mb-1">
-                POSOCO / Grid-India State-Level Diurnal Demand Curve Calibration
-              </h3>
-              <p className="text-xs text-slate-500">
-                Historical hourly load curves calibrated against West Bengal SLDC & ERLDC diurnal utility dispatch.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 mb-1">
+                  POSOCO / Grid-India State-Level Diurnal Demand Curve Calibration
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Historical hourly load curves calibrated against West Bengal SLDC & ERLDC diurnal utility dispatch.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 text-xs font-semibold self-start sm:self-auto">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                <span>Source: Grid-India / ERLDC Live Benchmark</span>
+              </div>
             </div>
 
             {/* Total Demand vs CESC vs WBSEDCL */}

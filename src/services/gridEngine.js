@@ -4,66 +4,161 @@
 import { CURATED_SUBSTATIONS, DEFAULT_ENV_DATA } from '../data/substationsData';
 
 /**
- * Generate instantaneous telemetry for a substation based on time of day and environmental stress
+ * Base Abstract Class for Substation Telemetry Providers
+ */
+export class TelemetryProvider {
+  constructor(sourceName = "Unknown") {
+    if (this.constructor === TelemetryProvider) {
+      throw new Error("TelemetryProvider is an abstract base class and cannot be instantiated directly.");
+    }
+    this.source = sourceName;
+    this.sourceTag = "Unknown";
+  }
+
+  /**
+   * Return latest telemetry for a given substation and environmental conditions.
+   * @param {Object} substation Substation metadata {id, name, lat, lon, capacity_mva, voltage_kv, ...}
+   * @param {Object} envData Live or default environmental readings
+   * @param {Date} now Current timestamp
+   * @returns {Object} Telemetry payload with telemetry_source field
+   */
+  getLatestTelemetry(substation, envData, now) {
+    throw new Error("getLatestTelemetry() must be implemented by subclass.");
+  }
+}
+
+/**
+ * Simulated Telemetry Provider
+ * Physics-guided Smart Grid Digital Twin Simulation Engine
+ * Calibrated using IEEE Std C57.91 Transformer Thermal Loading + Open-Meteo Environmental Correlation
+ */
+export class SimulatedTelemetryProvider extends TelemetryProvider {
+  constructor() {
+    super("Simulated (Physics Engine)");
+    this.sourceTag = "Simulated";
+  }
+
+  getLatestTelemetry(substation, envData = DEFAULT_ENV_DATA, now = new Date()) {
+    const hour = now.getHours() + now.getMinutes() / 60;
+    
+    // Baseline load curve for West Bengal: Peak between 18:00 - 22:00, secondary peak 12:00 - 15:00
+    let baseLoadRatio = 0.58;
+    if (hour >= 18 && hour <= 22) {
+      baseLoadRatio = 0.78;
+    } else if (hour >= 11 && hour <= 16) {
+      baseLoadRatio = 0.70;
+    } else if (hour >= 1 && hour <= 5) {
+      baseLoadRatio = 0.44;
+    }
+
+    // Locality specific offsets (Industrial vs IT Hub vs Residential)
+    let localityMultiplier = 1.0;
+    if (substation.area.includes("Industrial") || substation.area.includes("Taratala")) {
+      localityMultiplier = 1.08;
+    } else if (substation.area.includes("Salt Lake") || substation.area.includes("BBD Bagh")) {
+      localityMultiplier = 1.04;
+    } else if (substation.pincode === "700117" || substation.pincode === "700118") {
+      // Khardaha / Rahara target area
+      localityMultiplier = 0.94;
+    }
+
+    // AC Stress Factor impact (heat index + closed room surge)
+    const acMultiplier = 0.85 + 0.15 * (envData.ac_load_stress_factor || 1.35);
+    
+    // Pseudo-random deterministic jitter
+    const jitter = (Math.sin(now.getTime() / 8000 + (substation.lat * 100)) * 0.04);
+    
+    let loadPct = Math.min(96, Math.max(35, (baseLoadRatio * localityMultiplier * acMultiplier + jitter) * 100));
+    loadPct = Math.round(loadPct * 10) / 10;
+
+    const powerFactor = Math.round((0.91 + (Math.cos(now.getTime() / 15000) * 0.03)) * 1000) / 1000;
+    const apparentMva = Math.round((substation.capacity_mva * (loadPct / 100)) * 10) / 10;
+    const activePowerMw = Math.round((apparentMva * powerFactor) * 10) / 10;
+    const reactivePowerMvar = Math.round(Math.sqrt(Math.max(0, apparentMva**2 - activePowerMw**2)) * 10) / 10;
+
+    // IEEE Std C57.91: delta_T = rated_delta_T * (load_ratio ** 1.6)
+    const ratedDeltaT = 40.0;
+    const tempDelta = Math.round((ratedDeltaT * Math.pow(loadPct / 100, 1.6)) * 10) / 10;
+    const ambientTemp = envData.temperature_c || 29.5;
+    const oilTemp = Math.round((ambientTemp + tempDelta) * 10) / 10;
+
+    return {
+      substation_id: substation.id,
+      timestamp: now.toISOString(),
+      load_percentage: loadPct,
+      capacity_mva: substation.capacity_mva,
+      active_power_mw: activePowerMw,
+      apparent_power_mva: apparentMva,
+      reactive_power_mvar: reactivePowerMvar,
+      power_factor: powerFactor,
+      transformer_oil_temp_c: oilTemp,
+      ambient_temp_c: ambientTemp,
+      temperature_delta_c: tempDelta,
+      voltage_kv: substation.voltage_kv,
+      telemetry_source: "Simulated",
+      provider_name: this.source
+    };
+  }
+}
+
+/**
+ * Live SCADA Telemetry Provider (Stub / Integration Point)
+ * 
+ * TODO: Hook into utility SCADA / IoT broker when access is granted by WBSEDCL / CESC.
+ * Requirements for activation:
+ * 1. MQTT Broker Connection:
+ *    - Endpoint: wss://scada-gateway.wbsedcl.in:8883/mqtt or cesc-iot.cesc.co.in:8883
+ *    - Authentication: Mutual TLS (mTLS) with utility-issued client certificate & private key.
+ * 2. Topic Subscription Hierarchy:
+ *    - Schema: "wbsedcl/substation/{substation_id}/telemetry" or "cesc/scada/33kv/{substation_id}"
+ * 3. Payload Normalization:
+ *    - Incoming JSON or IEC 60870-5-104 / DNP3 parsed telemetry containing:
+ *      { active_power_mw, reactive_power_mvar, oil_temp_top, voltage_bus_kv, current_feeder_a }
+ *    - Must be mapped to standard BengalGrid schema with telemetry_source: "Live SCADA".
+ */
+export class LiveSCADATelemetryProvider extends TelemetryProvider {
+  constructor(config = {}) {
+    super("Live SCADA (WBSEDCL / CESC)");
+    this.brokerUrl = config.brokerUrl || null;
+    this.authToken = config.authToken || null;
+    this.isConnected = false;
+    this.sourceTag = "Live SCADA";
+  }
+
+  getLatestTelemetry(substation, envData, now) {
+    // TODO: Connect to live MQTT/SCADA broker and return real cached measurements
+    throw new Error(
+      `LiveSCADATelemetryProvider: Real-time SCADA access for ${substation.name} (${substation.operator}) ` +
+      `is not configured. Utility credentials (broker URL, mTLS cert) must be provided.`
+    );
+  }
+}
+
+// Active singleton telemetry provider
+let activeTelemetryProvider = new SimulatedTelemetryProvider();
+
+/**
+ * Swap the active telemetry provider (e.g. for testing or when live SCADA credentials are provided)
+ */
+export function setTelemetryProvider(provider) {
+  if (!(provider instanceof TelemetryProvider)) {
+    throw new Error("Invalid provider: must inherit from TelemetryProvider");
+  }
+  activeTelemetryProvider = provider;
+}
+
+/**
+ * Get the currently active telemetry provider instance
+ */
+export function getActiveTelemetryProvider() {
+  return activeTelemetryProvider;
+}
+
+/**
+ * Generate instantaneous telemetry for a substation via the active TelemetryProvider
  */
 export function generateSubstationTelemetry(substation, envData = DEFAULT_ENV_DATA, now = new Date()) {
-  const hour = now.getHours() + now.getMinutes() / 60;
-  
-  // Baseline load curve for West Bengal: Peak between 18:00 - 22:00, secondary peak 12:00 - 15:00
-  let baseLoadRatio = 0.58;
-  if (hour >= 18 && hour <= 22) {
-    baseLoadRatio = 0.78;
-  } else if (hour >= 11 && hour <= 16) {
-    baseLoadRatio = 0.70;
-  } else if (hour >= 1 && hour <= 5) {
-    baseLoadRatio = 0.44;
-  }
-
-  // Locality specific offsets (Industrial vs IT Hub vs Residential)
-  let localityMultiplier = 1.0;
-  if (substation.area.includes("Industrial") || substation.area.includes("Taratala")) {
-    localityMultiplier = 1.08;
-  } else if (substation.area.includes("Salt Lake") || substation.area.includes("BBD Bagh")) {
-    localityMultiplier = 1.04;
-  } else if (substation.pincode === "700117" || substation.pincode === "700118") {
-    // Khardaha / Rahara target area
-    localityMultiplier = 0.94;
-  }
-
-  // AC Stress Factor impact (heat index + closed room surge)
-  const acMultiplier = 0.85 + 0.15 * (envData.ac_load_stress_factor || 1.35);
-  
-  // Pseudo-random deterministic jitter
-  const jitter = (Math.sin(now.getTime() / 8000 + (substation.lat * 100)) * 0.04);
-  
-  let loadPct = Math.min(96, Math.max(35, (baseLoadRatio * localityMultiplier * acMultiplier + jitter) * 100));
-  loadPct = Math.round(loadPct * 10) / 10;
-
-  const powerFactor = Math.round((0.91 + (Math.cos(now.getTime() / 15000) * 0.03)) * 1000) / 1000;
-  const apparentMva = Math.round((substation.capacity_mva * (loadPct / 100)) * 10) / 10;
-  const activePowerMw = Math.round((apparentMva * powerFactor) * 10) / 10;
-  const reactivePowerMvar = Math.round(Math.sqrt(Math.max(0, apparentMva**2 - activePowerMw**2)) * 10) / 10;
-
-  // IEEE Std C57.91: delta_T = rated_delta_T * (load_ratio ** 1.6)
-  const ratedDeltaT = 40.0;
-  const tempDelta = Math.round((ratedDeltaT * Math.pow(loadPct / 100, 1.6)) * 10) / 10;
-  const ambientTemp = envData.temperature_c || 29.5;
-  const oilTemp = Math.round((ambientTemp + tempDelta) * 10) / 10;
-
-  return {
-    substation_id: substation.id,
-    timestamp: now.toISOString(),
-    load_percentage: loadPct,
-    capacity_mva: substation.capacity_mva,
-    active_power_mw: activePowerMw,
-    apparent_power_mva: apparentMva,
-    reactive_power_mvar: reactivePowerMvar,
-    power_factor: powerFactor,
-    transformer_oil_temp_c: oilTemp,
-    ambient_temp_c: ambientTemp,
-    temperature_delta_c: tempDelta,
-    voltage_kv: substation.voltage_kv
-  };
+  return activeTelemetryProvider.getLatestTelemetry(substation, envData, now);
 }
 
 /**
